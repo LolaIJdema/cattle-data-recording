@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Mobility Scoring Data</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2e7d32">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<h2>Mobility Scoring Data</h2> 
+
+<input type="number" id="numberInput" placeholder="Tag Number">
+
+<select name="score" id="scoreSelect" > 
+  <option value="">--Score--</option>
+  <option value="0">0</option>
+  <option value="1">1</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+</select>
+
+<select name="foot" id="footSelect"> 
+  <option value="">Foot (Optional)</option>
+  <option value="LF">Left Front</option>
+  <option value="RF">Right Front</option>
+  <option value="LH">Left Hind</option>
+  <option value="RH">Right Hind</option>
+</select>
+
+<br><br>
+
+<button onclick="addData()">Add</button>
+<button onclick="downloadCSV()">Download CSV</button>
+<button onclick="clearTable()">Clear Table</button>
+<button onclick="undoLast()">Undo Last</button>
+
+<h3>Saved Data</h3>
+<table border="1" id="dataTable">
+  <thead>
+    <tr>
+      <th>Number</th>
+      <th>Score</th>
+      <th>Foot</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<h3>Statistics</h3>
+<div id="stats"></div>
+
+<script>
+let data = [];
+
+// Load saved data on page load, might also want to add a clear data button and undo row
+window.onload = function() {
+  const saved = localStorage.getItem("tableData");
+  if (saved) {
+    data = JSON.parse(saved);
+  }
+  renderTable();
+  updateStats();
+};
+
+function addData() {
+  const number = document.getElementById("numberInput").value;
+  const score = document.getElementById("scoreSelect").value;
+  const foot = document.getElementById("footSelect").value;
+
+  let severity = ""; 
+
+  if (number === "") {
+    alert("Please enter a number");
+    return;
+  }
+
+  if (!score ) {
+    alert("Please select score");
+    return;
+  }
+
+  data.push({ number, score, foot });
+
+  saveData();
+  renderTable();
+  updateStats();
+
+  document.getElementById("numberInput").value = "";
+  
+}
+
+function updateStats() {
+
+    const counts = {0:0,1:0,2:0,3:0};
+
+    data.forEach(row => counts[row.score]++);
+
+    const total = data.length;
+    const lame = counts[2] + counts[3];
+
+    document.getElementById("stats").innerHTML = `
+        Total: ${total}<br>
+        Score 0: ${counts[0]}<br>
+        Score 1: ${counts[1]}<br>
+        Score 2: ${counts[2]}<br>
+        Score 3: ${counts[3]}<br><br>
+
+        Score ≥2: ${lame}
+        (${total ? ((lame/total)*100).toFixed(1) : 0}%)
+    `;
+}
+
+function undoLast() {
+    if (data.length === 0) return;
+
+    data.pop();
+    saveData();
+    renderTable();
+    updateStats();
+}
+
+function clearTable() {
+  if (!confirm("Are you sure you want to clear all data?")) return;
+
+  data = []; // clear memory
+  localStorage.removeItem("tableData"); // clear saved data
+
+  renderTable(); // refresh empty table
+  updateStats();
+}
+
+// Render table from data
+function renderTable() {
+  const tbody = document.querySelector("#dataTable tbody");
+  tbody.innerHTML = "";
+
+  data.forEach(row => {
+    const tr = tbody.insertRow();
+    tr.insertCell(0).innerText = row.number;
+    tr.insertCell(1).innerText = row.score;;
+    tr.insertCell(2).innerText = row.foot;
+});
+}
+
+// Save to browser
+function saveData() {
+  localStorage.setItem("tableData", JSON.stringify(data));
+}
+
+// Download CSV
+function downloadCSV() {
+  let csv = "Number,Score,foot\n";
+
+  data.forEach(row => {
+    csv += `${row.number},${row.score},${row.foot}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const today = new Date().toISOString().split("T")[0];
+  const a = document.createElement("a");
+  a.href = url;
+    
+  a.download = `MobilityScores_${today}.csv`;
+  a.click();
+
+  window.URL.revokeObjectURL(url);
+}
+
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js");
+}
+</script>
+
+</body>
+</html>
+
