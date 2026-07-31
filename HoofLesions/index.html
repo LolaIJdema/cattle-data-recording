@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Lesion Data</title>
+</head>
+<body>
+
+<h2>Hoof Lesion Recording</h2> 
+
+<input type="number" id="numberInput" placeholder="Tag Number">
+
+<select name="foot" id="footSelect"> 
+  <option value="">--Foot--</option>
+  <option value="LF">Left Front</option>
+  <option value="RF">Right Front</option>
+  <option value="LH">Left Hind</option>
+  <option value="RH">Right Hind</option>
+</select>
+
+<select name="lesion" id="lesionSelect" onchange="checkOption()"> 
+  <option value="">--Lesion Type--</option>
+  <option value="DD">Digital Dermatitis</option>
+  <option value="ID">Interdigital Dermatitis</option>
+  <option value="DS">Double Sole</option>
+  <option value="HHE">Heel Horn Erosion</option>
+  <option value="HF">Horn Fissure</option>
+  <option value="IH">Interdigital Hyperplasia</option>
+  <option value="IP">Interdigital Phlegmon</option>
+  <option value="SW">Swelling of Coronet/Bulb</option>
+  <option value="SH">Sole Hemorrage</option>
+  <option value="SU">Sole Ulcer</option>
+  <option value="BU">Bulb Ulcer</option>
+  <option value="TU">Toe Ulcer</option>
+  <option value="TN">Toe Necrosis</option>
+  <option value="WLL">White Line Seperation</option>
+  <option value="WLA">White Line Abscess</option>
+
+</select>
+
+<select name="severity1" id="sev1Select" style="display:none;"> 
+  <option value="">--Severity--</option>
+  <option value="Mild">Mild</option>
+  <option value="Moderate">Moderate</option>
+  <option value="Severe">Severe</option>
+</select>
+
+<select name="severity2" id="sev2Select" style="display:none;"> 
+  <option value="">--Severity--</option>
+  <option value="Present">Present</option>
+</select>
+
+<select name="severity3" id="sev3Select" style="display:none;"> 
+  <option value="">--Severity--</option>
+  <option value="M1">M1</option>
+  <option value="M2">M2</option>
+  <option value="M3">M3</option>
+  <option value="M4">M4</option>
+  <option value="M4.1">M4.1</option>
+</select>
+
+</select>
+
+<br><br>
+
+<button onclick="addData()">Add</button>
+<button onclick="downloadCSV()">Download CSV</button>
+<button onclick="clearTable()">Clear Table</button>
+<button onclick="undoLast()">Undo Last</button>
+
+<h3>Saved Data</h3>
+<table border="1" id="dataTable">
+  <thead>
+    <tr>
+      <th>Number</th>
+      <th>Foot</th>
+      <th>Lesion</th>
+      <th>Severity</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+let data = [];
+
+// Load saved data on page load, might also want to add a clear data button and undo row
+window.onload = function() {
+  const saved = localStorage.getItem("tableData");
+  if (saved) {
+    data = JSON.parse(saved);
+    renderTable();
+  }
+};
+
+function checkOption() {
+  const lesion = document.getElementById("lesionSelect").value;
+
+  const sev1 = document.getElementById("sev1Select");
+  const sev2 = document.getElementById("sev2Select");
+  const sev3 = document.getElementById("sev3Select");
+
+  // Hide all first
+  sev1.style.display = "none";
+  sev2.style.display = "none";
+  sev3.style.display = "none";
+
+  // Reset values
+  sev1.value = "";
+  sev2.value = "";
+  sev3.value = "";
+
+  // Show correct one
+  if (lesion === "DD") {
+    sev3.style.display = "inline";
+  } else if (lesion === "ID" || lesion === "TN" || lesion === "IP" || lesion === "WLA") {
+    sev2.style.display = "inline";
+  } else {
+    sev1.style.display = "inline";
+  }
+}
+
+function addData() {
+  const number = document.getElementById("numberInput").value;
+  const foot = document.getElementById("footSelect").value;
+  const lesion = document.getElementById("lesionSelect").value;
+
+  let severity = "";
+
+  if (lesion === "DD") {
+    severity = document.getElementById("sev3Select").value;
+  } else if (
+    lesion === "ID" ||
+    lesion === "TN" ||
+    lesion === "IP" ||
+    lesion === "WLA"
+  ) {
+    severity = document.getElementById("sev2Select").value;
+  } else {
+    severity = document.getElementById("sev1Select").value;
+  }
+
+  if (number === "") {
+    alert("Please enter a number");
+    return;
+  }
+
+  if (!lesion || !severity) {
+    alert("Please select lesion and severity");
+    return;
+  }
+
+  data.push({ number, foot, lesion, severity });
+
+  saveData();
+  renderTable();
+
+  document.getElementById("numberInput").value = "";
+}
+
+function clearTable() {
+  if (!confirm("Are you sure you want to clear all data?")) return;
+
+  data = []; // clear memory
+  localStorage.removeItem("tableData"); // clear saved data
+
+  renderTable(); // refresh empty table
+}
+
+// Render table from data
+function renderTable() {
+  const tbody = document.querySelector("#dataTable tbody");
+  tbody.innerHTML = "";
+
+  data.forEach(row => {
+    const tr = tbody.insertRow();
+    tr.insertCell(0).innerText = row.number;
+    tr.insertCell(1).innerText = row.foot;
+    tr.insertCell(2).innerText = row.lesion;
+    tr.insertCell(3).innerText = row.severity;
+});
+}
+
+// Save to browser
+function saveData() {
+  localStorage.setItem("tableData", JSON.stringify(data));
+}
+
+// Download CSV
+function downloadCSV() {
+  let csv = "Number,Foot,Lesion,Severity\n";
+
+  data.forEach(row => {
+    csv += `${row.number},${row.foot},${row.lesion},${row.severity}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const today = new Date().toISOString().split("T")[0];
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `HoofLesions_${today}.csv`;
+  a.click();
+
+  window.URL.revokeObjectURL(url);
+}
+
+function undoLast() {
+    if (data.length === 0) return;
+
+    data.pop();
+    saveData();
+    renderTable();
+}
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js");
+}
+</script>
+
+</body>
+</html>
