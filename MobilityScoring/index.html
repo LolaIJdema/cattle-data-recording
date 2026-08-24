@@ -137,7 +137,7 @@ function renderTable() {
   tbody.innerHTML = "";
 
   data.forEach(row => {
-    const tr = tbody.insertRow();
+    const tr = tbody.insertRow(0);
     tr.insertCell(0).innerText = row.number;
     tr.insertCell(1).innerText = row.score;;
     tr.insertCell(2).innerText = row.foot;
