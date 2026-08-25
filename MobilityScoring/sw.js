@@ -1,4 +1,4 @@
-const CACHE_NAME = "mobility scoring-v1";
+const CACHE_NAME = "mobility scoring-v2";
 
 const FILES_TO_CACHE = [
   "./",
